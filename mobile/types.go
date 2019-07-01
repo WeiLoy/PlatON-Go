@@ -22,7 +22,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
@@ -241,11 +240,11 @@ func (tx *Transaction) GetHash() *Hash   { return &Hash{tx.tx.Hash()} }
 func (tx *Transaction) GetCost() *BigInt { return &BigInt{tx.tx.Cost()} }
 
 // Deprecated: GetSigHash cannot know which signer to use.
-func (tx *Transaction) GetSigHash() *Hash { return &Hash{types.NewEIP155Signer(new(big.Int)).Hash(tx.tx)} }
+func (tx *Transaction) GetSigHash() *Hash { return &Hash{types.HomesteadSigner{}.Hash(tx.tx)} }
 
 // Deprecated: use EthereumClient.TransactionSender
 func (tx *Transaction) GetFrom(chainID *BigInt) (address *Address, _ error) {
-	var signer types.Signer = types.NewEIP155Signer(new(big.Int))
+	var signer types.Signer = types.HomesteadSigner{}
 	if chainID != nil {
 		signer = types.NewEIP155Signer(chainID.bigint)
 	}
@@ -261,7 +260,7 @@ func (tx *Transaction) GetTo() *Address {
 }
 
 func (tx *Transaction) WithSignature(sig []byte, chainID *BigInt) (signedTx *Transaction, _ error) {
-	var signer types.Signer =  types.NewEIP155Signer(new(big.Int))
+	var signer types.Signer = types.HomesteadSigner{}
 	if chainID != nil {
 		signer = types.NewEIP155Signer(chainID.bigint)
 	}

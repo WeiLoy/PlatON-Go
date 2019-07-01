@@ -213,7 +213,7 @@ func TestInnerAgency(t *testing.T) {
 			if err != nil {
 				panic(err)
 			}
-			signer := types.NewEIP155Signer(chainConfig.ChainID)
+			signer := types.MakeSigner(chainConfig, block.Number())
 			tx, err := types.SignTx(
 				types.NewTransaction(
 					block.TxNonce(testAddress),
@@ -237,7 +237,7 @@ func TestInnerAgency(t *testing.T) {
 			if err != nil {
 				panic(err)
 			}
-			signer := types.NewEIP155Signer(chainConfig.ChainID)
+			signer := types.MakeSigner(chainConfig, block.Number())
 			tx, err := types.SignTx(
 				types.NewTransaction(
 					block.TxNonce(testAddress),

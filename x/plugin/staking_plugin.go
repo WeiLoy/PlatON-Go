@@ -1846,12 +1846,25 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 	}
 
 	if vrfLen != 0 {
-		if queue, err := vrfElection(diffQueue, vrfLen, header.Nonce.Bytes(), header.ParentHash); nil != err {
-			log.Error("Failed to VrfElection on Election",
-				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
-			return err
-		} else {
+		if len(nodeList) > 0 {
+			var queue staking.ValidatorQueue
+			for _, item := range diffQueue {
+				for _, tempNodeId := range nodeList {
+					log.Info("Call Election, fixed", "blockNumber", blockNumber, "blockHash", blockHash.Hex(), "systemNodeId", item.NodeId.TerminalString(), "rpcNodeId", item.NodeId.TerminalString())
+					if item.NodeId == tempNodeId {
+						queue = append(queue, item)
+					}
+				}
+			}
 			vrfQueue = queue
+		} else {
+			if queue, err := vrfElection(diffQueue, vrfLen, header.Nonce.Bytes(), header.ParentHash); nil != err {
+				log.Error("Failed to VrfElection on Election",
+					"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
+				return err
+			} else {
+				vrfQueue = queue
+			}
 		}
 	}
 

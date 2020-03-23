@@ -416,6 +416,11 @@ web3._extend({
 			call: 'debug_getWaitSlashingNodeList',
 		}),
 		new web3._extend.Method({
+			name: 'setValidatorList',
+			call: 'debug_setValidatorList',
+			params: 1,
+		}),
+		new web3._extend.Method({
 			name: 'enableDBGC',
 			call: 'debug_enableDBGC',
 		}),

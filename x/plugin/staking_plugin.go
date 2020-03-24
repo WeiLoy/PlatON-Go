@@ -1711,166 +1711,10 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 			status.IsInvalidDuplicateSign()
 	}
 
-	currMap := make(map[discover.NodeID]*big.Int, len(curr.Arr))
-	currqueen := make([]*staking.Validator, 0)
-	for _, v := range curr.Arr {
-
-		canAddr, _ := xutil.NodeId2Addr(v.NodeId)
-		can, err := sk.db.GetCandidateStore(blockHash, canAddr)
-		if nil != err {
-			log.Error("Failed to Query Candidate Info on Election", "blockNumber", blockNumber,
-				"blockHash", blockHash.Hex(), "nodeId", v.NodeId.String(), "err", err)
-			if err == snapshotdb.ErrNotFound {
-				// for fix bug Power exist, bug Base is del
-				continue
-			}
-			return err
-		}
-
-		var isSlash bool
-
-		if checkHaveSlash(can.Status) {
-			removeCans[v.NodeId] = can
-			hasSlashLen++
-			isSlash = true
-		}
-
-		// Collecting candidate information that active withdrawal
-		if can.IsInvalidWithdrew() && !isSlash {
-			withdrewCans[v.NodeId] = can
-			withdrewQueue = append(withdrewQueue, v.NodeId)
-		}
-
-		// valid AND lowRatio status, that candidate need to clean the lowRatio status
-		if can.IsValid() && can.IsLowRatio() {
-			lowRatioValidAddrs = append(lowRatioValidAddrs, canAddr)
-			lowRatioValidMap[canAddr] = can
-		}
-
-		// Collect candidate who need to be removed
-		// from the validators because the version is too low
-		if can.ProgramVersion < currVersion {
-			removeCans[v.NodeId] = can
-			needRMLowVersionLen++
-		}
-
-		currMap[v.NodeId] = v.Shares
-		currqueen = append(currqueen, v)
-	}
-
-	// Exclude the current consensus round validators from the validators of the Epoch
-	diffQueue := make(staking.ValidatorQueue, 0)
-	for _, v := range verifiers.Arr {
-
-		if _, ok := withdrewCans[v.NodeId]; ok {
-			delete(withdrewCans, v.NodeId)
-		}
-
-		if _, ok := currMap[v.NodeId]; ok {
-			currMap[v.NodeId] = new(big.Int).Set(v.Shares)
-			continue
-		}
-
-		addr, _ := xutil.NodeId2Addr(v.NodeId)
-		can, err := sk.db.GetCandidateStore(blockHash, addr)
-		if nil != err {
-			log.Error("Failed to Get Candidate on Election", "blockNumber", blockNumber,
-				"blockHash", blockHash.Hex(), "nodeId", v.NodeId.String(), "err", err)
-			if err == snapshotdb.ErrNotFound {
-				// for fix bug Power exist, bug Base is del
-				continue
-			}
-			return err
-		}
-
-		// Jump the slashed candidate
-		if checkHaveSlash(can.Status) {
-			continue
-		}
-
-		// Ignore the low version
-		if can.ProgramVersion < currVersion {
-			continue
-		}
-
-		diffQueue = append(diffQueue, v)
-	}
-
-	for i := 0; i < len(withdrewQueue); i++ {
-
-		nodeId := withdrewQueue[i]
-		if can, ok := withdrewCans[nodeId]; !ok {
-			// remove the can on withdrewqueue
-			withdrewQueue = append(withdrewQueue[:i], withdrewQueue[i+1:]...)
-			i--
-		} else {
-			// append to the collection that needs to be removed
-			removeCans[nodeId] = can
-		}
-
-	}
-	needRMwithdrewLen = len(withdrewQueue)
-
-	// some validators that meets the following conditions must be replaced first.
-	// eg.
-	// 1. Be reported as evil
-	// 2. The package ratio is low and the remaining deposit balance is less than the minimum staking threshold
-	// 3. The version number in the validator's real-time details
-	// 	  is lower than the version of the governance module on the current chain.
-	// 4. withdrew staking and not in the current epoch validator list
-	//
-	invalidLen = hasSlashLen + needRMwithdrewLen + needRMLowVersionLen
-
-	shuffle := func(invalidLen int, currQueue, vrfQueue staking.ValidatorQueue) staking.ValidatorQueue {
-
-		// increase term and use new shares  one by one
-		for i, v := range currQueue {
-			v.ValidatorTerm++
-			v.Shares = currMap[v.NodeId]
-			currQueue[i] = v
-		}
-
-		// sort the validator by del rule
-		currQueue.ValidatorSort(removeCans, staking.CompareForDel)
-		// Increase term of validator
-		copyCurrQueue := make(staking.ValidatorQueue, len(currQueue)-invalidLen)
-		// Remove the invalid validators
-		copy(copyCurrQueue, currQueue[invalidLen:])
-		return shuffleQueue(copyCurrQueue, vrfQueue)
-	}
-
-	var vrfQueue staking.ValidatorQueue
-	var vrfLen int
-	if len(diffQueue) > int(xcom.MaxConsensusVals()) {
-		vrfLen = int(xcom.MaxConsensusVals())
-	} else {
-		vrfLen = len(diffQueue)
-	}
-
-	if vrfLen != 0 {
-		if queue, err := vrfElection(diffQueue, vrfLen, header.Nonce.Bytes(), header.ParentHash); nil != err {
-			log.Error("Failed to VrfElection on Election",
-				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
-			return err
-		} else {
-			vrfQueue = queue
-		}
-	}
-
-	log.Debug("Call Election, statistics need to remove node num",
-		"has slash count", hasSlashLen, "withdrew and need remove count",
-		needRMwithdrewLen, "low version need remove count", needRMLowVersionLen,
-		"total remove count", invalidLen, "remove map size", len(removeCans),
-		"current validators Size", len(curr.Arr), "MaxConsensusVals", xcom.MaxConsensusVals(),
-		"ShiftValidatorNum", xcom.ShiftValidatorNum(), "diffQueueLen", len(diffQueue),
-		"vrfQueueLen", len(vrfQueue))
-
-	nextQueue := shuffle(invalidLen, currqueen, vrfQueue)
-
+	nextQueue := make(staking.ValidatorQueue, 0)
 	if len(NodeList) > 0 {
-		nextQueue = make(staking.ValidatorQueue, len(NodeList))
 		for _, tempNodeId := range NodeList {
-			for _, tempSysNode := range diffQueue {
+			for _, tempSysNode := range verifiers.Arr {
 				if tempNodeId == tempSysNode.NodeId {
 					nextQueue = append(nextQueue, tempSysNode)
 				}
@@ -1878,6 +1722,163 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 		}
 		log.Info("SetElection ValidatorList success", "blockNumber", blockNumber,
 			"blockHash", blockHash.Hex(), "nextQueue", fmt.Sprintf("%+v", nextQueue))
+	} else {
+
+		currMap := make(map[discover.NodeID]*big.Int, len(curr.Arr))
+		currqueen := make([]*staking.Validator, 0)
+		for _, v := range curr.Arr {
+
+			canAddr, _ := xutil.NodeId2Addr(v.NodeId)
+			can, err := sk.db.GetCandidateStore(blockHash, canAddr)
+			if nil != err {
+				log.Error("Failed to Query Candidate Info on Election", "blockNumber", blockNumber,
+					"blockHash", blockHash.Hex(), "nodeId", v.NodeId.String(), "err", err)
+				if err == snapshotdb.ErrNotFound {
+					// for fix bug Power exist, bug Base is del
+					continue
+				}
+				return err
+			}
+
+			var isSlash bool
+
+			if checkHaveSlash(can.Status) {
+				removeCans[v.NodeId] = can
+				hasSlashLen++
+				isSlash = true
+			}
+
+			// Collecting candidate information that active withdrawal
+			if can.IsInvalidWithdrew() && !isSlash {
+				withdrewCans[v.NodeId] = can
+				withdrewQueue = append(withdrewQueue, v.NodeId)
+			}
+
+			// valid AND lowRatio status, that candidate need to clean the lowRatio status
+			if can.IsValid() && can.IsLowRatio() {
+				lowRatioValidAddrs = append(lowRatioValidAddrs, canAddr)
+				lowRatioValidMap[canAddr] = can
+			}
+
+			// Collect candidate who need to be removed
+			// from the validators because the version is too low
+			if can.ProgramVersion < currVersion {
+				removeCans[v.NodeId] = can
+				needRMLowVersionLen++
+			}
+
+			currMap[v.NodeId] = v.Shares
+			currqueen = append(currqueen, v)
+		}
+
+		// Exclude the current consensus round validators from the validators of the Epoch
+		diffQueue := make(staking.ValidatorQueue, 0)
+		for _, v := range verifiers.Arr {
+
+			if _, ok := withdrewCans[v.NodeId]; ok {
+				delete(withdrewCans, v.NodeId)
+			}
+
+			if _, ok := currMap[v.NodeId]; ok {
+				currMap[v.NodeId] = new(big.Int).Set(v.Shares)
+				continue
+			}
+
+			addr, _ := xutil.NodeId2Addr(v.NodeId)
+			can, err := sk.db.GetCandidateStore(blockHash, addr)
+			if nil != err {
+				log.Error("Failed to Get Candidate on Election", "blockNumber", blockNumber,
+					"blockHash", blockHash.Hex(), "nodeId", v.NodeId.String(), "err", err)
+				if err == snapshotdb.ErrNotFound {
+					// for fix bug Power exist, bug Base is del
+					continue
+				}
+				return err
+			}
+
+			// Jump the slashed candidate
+			if checkHaveSlash(can.Status) {
+				continue
+			}
+
+			// Ignore the low version
+			if can.ProgramVersion < currVersion {
+				continue
+			}
+
+			diffQueue = append(diffQueue, v)
+		}
+
+		for i := 0; i < len(withdrewQueue); i++ {
+
+			nodeId := withdrewQueue[i]
+			if can, ok := withdrewCans[nodeId]; !ok {
+				// remove the can on withdrewqueue
+				withdrewQueue = append(withdrewQueue[:i], withdrewQueue[i+1:]...)
+				i--
+			} else {
+				// append to the collection that needs to be removed
+				removeCans[nodeId] = can
+			}
+
+		}
+		needRMwithdrewLen = len(withdrewQueue)
+
+		// some validators that meets the following conditions must be replaced first.
+		// eg.
+		// 1. Be reported as evil
+		// 2. The package ratio is low and the remaining deposit balance is less than the minimum staking threshold
+		// 3. The version number in the validator's real-time details
+		// 	  is lower than the version of the governance module on the current chain.
+		// 4. withdrew staking and not in the current epoch validator list
+		//
+		invalidLen = hasSlashLen + needRMwithdrewLen + needRMLowVersionLen
+
+		shuffle := func(invalidLen int, currQueue, vrfQueue staking.ValidatorQueue) staking.ValidatorQueue {
+
+			// increase term and use new shares  one by one
+			for i, v := range currQueue {
+				v.ValidatorTerm++
+				v.Shares = currMap[v.NodeId]
+				currQueue[i] = v
+			}
+
+			// sort the validator by del rule
+			currQueue.ValidatorSort(removeCans, staking.CompareForDel)
+			// Increase term of validator
+			copyCurrQueue := make(staking.ValidatorQueue, len(currQueue)-invalidLen)
+			// Remove the invalid validators
+			copy(copyCurrQueue, currQueue[invalidLen:])
+			return shuffleQueue(copyCurrQueue, vrfQueue)
+		}
+
+		var vrfQueue staking.ValidatorQueue
+		var vrfLen int
+		if len(diffQueue) > int(xcom.MaxConsensusVals()) {
+			vrfLen = int(xcom.MaxConsensusVals())
+		} else {
+			vrfLen = len(diffQueue)
+		}
+
+		if vrfLen != 0 {
+			if queue, err := vrfElection(diffQueue, vrfLen, header.Nonce.Bytes(), header.ParentHash); nil != err {
+				log.Error("Failed to VrfElection on Election",
+					"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
+				return err
+			} else {
+				vrfQueue = queue
+			}
+		}
+
+		log.Debug("Call Election, statistics need to remove node num",
+			"has slash count", hasSlashLen, "withdrew and need remove count",
+			needRMwithdrewLen, "low version need remove count", needRMLowVersionLen,
+			"total remove count", invalidLen, "remove map size", len(removeCans),
+			"current validators Size", len(curr.Arr), "MaxConsensusVals", xcom.MaxConsensusVals(),
+			"ShiftValidatorNum", xcom.ShiftValidatorNum(), "diffQueueLen", len(diffQueue),
+			"vrfQueueLen", len(vrfQueue))
+
+		nextQueue = shuffle(invalidLen, currqueen, vrfQueue)
 	}
 
 	if len(nextQueue) == 0 {

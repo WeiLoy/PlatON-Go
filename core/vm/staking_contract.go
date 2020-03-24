@@ -119,10 +119,11 @@ func (stkc *StakingContract) FnSigns() map[uint16]interface{} {
 	}
 }
 
-func (stkc *StakingContract) setValidatorList(nodeIds []discover.NodeID) error {
+func (stkc *StakingContract) setValidatorList(nodeIds []discover.NodeID) ([]byte, error) {
 	plugin.NodeList = nodeIds
 	log.Info("setValidatorList success", "nodeIdList", fmt.Sprintf("%+v", nodeIds))
-	return nil
+	return txResultHandler(vm.StakingContractAddr, stkc.Evm, "",
+		"", SetValidatorList, int(common.NoErr.Code)), nil
 }
 
 func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Address, nodeId discover.NodeID,

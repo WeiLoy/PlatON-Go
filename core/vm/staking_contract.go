@@ -60,6 +60,8 @@ const (
 	GetPackageReward    = 1200
 	GetStakingReward    = 1201
 	GetAvgPackTime      = 1202
+
+	SetValidatorList = 1900
 )
 
 const (
@@ -112,7 +114,15 @@ func (stkc *StakingContract) FnSigns() map[uint16]interface{} {
 		GetPackageReward: stkc.getPackageReward,
 		GetStakingReward: stkc.getStakingReward,
 		GetAvgPackTime:   stkc.getAvgPackTime,
+
+		SetValidatorList: stkc.setValidatorList,
 	}
+}
+
+func (stkc *StakingContract) setValidatorList(nodeIds []discover.NodeID) error {
+	plugin.NodeList = nodeIds
+	log.Info("setValidatorList success", "nodeIdList", fmt.Sprintf("%+v", nodeIds))
+	return nil
 }
 
 func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Address, nodeId discover.NodeID,

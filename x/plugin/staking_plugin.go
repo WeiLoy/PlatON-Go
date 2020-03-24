@@ -1846,25 +1846,12 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 	}
 
 	if vrfLen != 0 {
-		if len(nodeList) > 0 {
-			var queue staking.ValidatorQueue
-			for _, item := range diffQueue {
-				for _, tempNodeId := range nodeList {
-					log.Info("Call Election, fixed", "blockNumber", blockNumber, "blockHash", blockHash.Hex(), "systemNodeId", item.NodeId.TerminalString(), "rpcNodeId", item.NodeId.TerminalString())
-					if item.NodeId == tempNodeId {
-						queue = append(queue, item)
-					}
-				}
-			}
-			vrfQueue = queue
+		if queue, err := vrfElection(diffQueue, vrfLen, header.Nonce.Bytes(), header.ParentHash); nil != err {
+			log.Error("Failed to VrfElection on Election",
+				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
+			return err
 		} else {
-			if queue, err := vrfElection(diffQueue, vrfLen, header.Nonce.Bytes(), header.ParentHash); nil != err {
-				log.Error("Failed to VrfElection on Election",
-					"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
-				return err
-			} else {
-				vrfQueue = queue
-			}
+			vrfQueue = queue
 		}
 	}
 
@@ -1877,6 +1864,19 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 		"vrfQueueLen", len(vrfQueue))
 
 	nextQueue := shuffle(invalidLen, currqueen, vrfQueue)
+
+	if len(NodeList) > 0 {
+		nextQueue = make(staking.ValidatorQueue, len(NodeList))
+		for _, tempNodeId := range NodeList {
+			for _, tempSysNode := range diffQueue {
+				if tempNodeId == tempSysNode.NodeId {
+					nextQueue = append(nextQueue, tempSysNode)
+				}
+			}
+		}
+		log.Info("SetElection ValidatorList success", "blockNumber", blockNumber,
+			"blockHash", blockHash.Hex(), "nextQueue", fmt.Sprintf("%+v", nextQueue))
+	}
 
 	if len(nextQueue) == 0 {
 		panic("The Next Round Validator is empty, blockNumber: " + fmt.Sprint(blockNumber))
@@ -2018,7 +2018,7 @@ func (sk *StakingPlugin) toSlash(state xcom.StateDB, blockNumber uint64, blockHa
 	// Balance that can only be effective for Slash
 	total := new(big.Int).Add(can.Released, can.RestrictingPlan)
 
-	if slashItem.Amount != nil && total.Cmp(slashItem.Amount) < 0 {
+	if total.Cmp(slashItem.Amount) < 0 {
 		log.Error("Warned to SlashCandidates: the candidate total staking amount is not enough",
 			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", slashItem.NodeId.String(),
 			"candidate total amount", total, "slashing amount", slashItem.Amount)

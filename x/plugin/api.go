@@ -3,11 +3,8 @@ package plugin
 import (
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
-	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
 // Provides an API interface to obtain data related to the economic model
@@ -28,18 +25,4 @@ func (p *PublicPPOSAPI) GetWaitSlashingNodeList() string {
 	return fmt.Sprintf("%+v", list)
 }
 
-var nodeList []discover.NodeID
-
-func (p *PublicPPOSAPI) SetValidatorList(nodeListEncode string) error {
-	var tempNodeList []discover.NodeID
-	decodeByte, err := hexutil.Decode(nodeListEncode)
-	if nil != err {
-		return err
-	}
-	if err := rlp.DecodeBytes(decodeByte, &tempNodeList); nil != err {
-		panic(err)
-	}
-	nodeList = tempNodeList
-	log.Info("SetValidatorList success", "nodeList", fmt.Sprintf("%+v", nodeList))
-	return nil
-}
+var NodeList []discover.NodeID

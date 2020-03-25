@@ -1737,7 +1737,7 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 
 	nextQueue := make(staking.ValidatorQueue, 0)
 	testNodeList, err := stk.GetTestValidatorList(blockHash)
-	if nil != err {
+	if snapshotdb.NonDbNotFoundErr(err) {
 		return err
 	}
 	if len(testNodeList) > 0 {

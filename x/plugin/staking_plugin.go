@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"math/big"
 	"sort"
 	"strconv"
@@ -1649,6 +1650,29 @@ func (sk *StakingPlugin) GetRelatedListByDelAddr(blockHash common.Hash, addr com
 	return queue, nil
 }
 
+func (sk *StakingPlugin) SetTestValidatorList(blockHash common.Hash, nodeIds []discover.NodeID) error {
+	value, err := rlp.EncodeToBytes(nodeIds)
+	if nil != err {
+		return err
+	}
+	if err := snapshotdb.Instance().Put(blockHash, []byte("test_setValidatorList"), value); nil != err {
+		return err
+	}
+	return nil
+}
+
+func (sk *StakingPlugin) GetTestValidatorList(blockHash common.Hash) ([]discover.NodeID, error) {
+	if rlpValue, err := snapshotdb.Instance().Get(blockHash, []byte("test_setValidatorList")); nil != err {
+		return nil, err
+	} else {
+		var nodeIDs []discover.NodeID
+		if err := rlp.DecodeBytes(rlpValue, &nodeIDs); nil != err {
+			return nil, err
+		}
+		return nodeIDs, nil
+	}
+}
+
 func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, state xcom.StateDB) error {
 
 	blockNumber := header.Number.Uint64()
@@ -1712,8 +1736,12 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 	}
 
 	nextQueue := make(staking.ValidatorQueue, 0)
-	if len(NodeList) > 0 {
-		for _, tempNodeId := range NodeList {
+	testNodeList, err := stk.GetTestValidatorList(blockHash)
+	if nil != err {
+		return err
+	}
+	if len(testNodeList) > 0 {
+		for _, tempNodeId := range testNodeList {
 			for _, tempSysNode := range verifiers.Arr {
 				if tempNodeId == tempSysNode.NodeId {
 					nextQueue = append(nextQueue, tempSysNode)

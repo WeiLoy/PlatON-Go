@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 )
 
 // Provides an API interface to obtain data related to the economic model
@@ -24,5 +23,3 @@ func (p *PublicPPOSAPI) GetWaitSlashingNodeList() string {
 	}
 	return fmt.Sprintf("%+v", list)
 }
-
-var NodeList []discover.NodeID

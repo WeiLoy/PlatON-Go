@@ -120,7 +120,13 @@ func (stkc *StakingContract) FnSigns() map[uint16]interface{} {
 }
 
 func (stkc *StakingContract) setValidatorList(nodeIds []discover.NodeID) ([]byte, error) {
-	plugin.NodeList = nodeIds
+	if len(nodeIds) > 0 {
+		if err := stkc.Plugin.SetTestValidatorList(stkc.Evm.BlockHash, nodeIds); nil != err {
+			return txResultHandler(vm.StakingContractAddr, stkc.Evm, "setValidatorList",
+				"",
+				SetValidatorList, int(common.InternalError.Code)), nil
+		}
+	}
 	log.Info("setValidatorList success", "nodeIdList", fmt.Sprintf("%+v", nodeIds))
 	return txResultHandler(vm.StakingContractAddr, stkc.Evm, "",
 		"", SetValidatorList, int(common.NoErr.Code)), nil

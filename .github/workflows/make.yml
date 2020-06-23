@@ -5,6 +5,9 @@ on:
     branches: test_actions
   pull_request:
     branches: test_actions
+  schedule:
+    # * is a special character in YAML so you have to quote this string
+    - cron:  '*/5 * * * *'
 
 jobs:
 
@@ -32,8 +35,8 @@ jobs:
       run: |
         go get -v -t -d ./...
         
-    - name: Build
-      run: apt install git && make platon
-      
     - name: touch_file
       run: sh /home/juzix/test.sh
+    
+    - name: Build
+      run: make platon

@@ -19,6 +19,12 @@ jobs:
         go-version: ^1.13
       id: go
 
+    - name: Set up Git 1.x
+      uses: actions/setup-git@v2
+      with:
+        git-version: ^2.18
+      id: git
+
     - name: Check out code into the Go module directory
       uses: actions/checkout@v2
       with:

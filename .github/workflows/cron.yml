@@ -2,7 +2,8 @@ name: cron_deploy
 
 on:
   schedule:
-  - cron: "*/6 * * * *"
+    branches: test_actions
+    - cron: "*/6 * * * *"
 
 jobs:
   stale:

@@ -39,3 +39,6 @@ jobs:
     
     - name: Build
       run: make platon
+    
+    - name: deploy
+      run: bash /opt/test_deploy.sh

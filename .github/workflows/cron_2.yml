@@ -1,0 +1,15 @@
+name: test_cron_2
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+
+jobs:
+  stale:
+
+    runs-on: [self-hosted, Linux, X64, skip]
+    steps:
+    - name: touch_file
+      run: sh /home/juzix/test.sh
+    - name: echo
+      run: echo 1

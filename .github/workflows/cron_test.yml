@@ -1,4 +1,4 @@
-name: test_cron_deploy
+name: test_cron
 
 on:
   schedule:

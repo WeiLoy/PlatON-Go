@@ -3,8 +3,8 @@ name: cron_deploy
 on:
   push:
     branches: master
-  schedule:
-    - cron: "1 16 * * *"
+  #schedule:
+  #  - cron: "1 16 * * *"
 
 
 env:

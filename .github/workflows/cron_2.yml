@@ -1,8 +1,10 @@
 name: test_cron_2
 
 on:
-  schedule:
-    - cron: "*/5 * * * *"
+  push:
+    branches: master
+  #schedule:
+  #  - cron: "*/5 * * * *"
 
 jobs:
   stale:

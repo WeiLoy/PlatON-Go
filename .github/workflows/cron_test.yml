@@ -1,13 +1,17 @@
 name: test_cron
 
 on:
-  schedule:
-    - cron: "*/5 * * * *"
+  push:
+    branches: test_actions
 
 jobs:
+  stat_tps:
+    runs-on: [self-hosted, Linux, X64, deploy]
+    steps:
+    - name: Statistics_TPS
+      run: bash /opt/statistics_tps.sh
   stale:
-
-    runs-on: [self-hosted, Linux, X64, skip]
+    runs-on: [self-hosted, Linux, X64, deploy]
     steps:
     - name: touch_file
       run: sh /home/juzix/test.sh

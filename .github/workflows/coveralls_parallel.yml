@@ -11,11 +11,29 @@ jobs:
           - 1
           - 2
     steps:
-      - uses: actions/checkout@master
-      - uses: actions/setup-node@master
+      - name: Set up Go 1.x
+        uses: actions/setup-go@v2
         with:
-          version: 10.x
-      - run: npm install
+          go-version: ^1.13
+        id: go
+
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v2
+        with:
+            ref: merge-latest-ethereum
+            submodules: true 
+
+      - uses: actions/cache@v1
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Get dependencies
+        run: |
+          go get -v -t -d ./...
+          
       - run: make test-coverage-${{ matrix.test_number }}
       - name: Coveralls
         uses: coverallsapp/github-action@v1.1.0

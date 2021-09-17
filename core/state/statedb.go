@@ -113,6 +113,8 @@ type StateDB struct {
 	StorageHashes  time.Duration
 	StorageUpdates time.Duration
 	StorageCommits time.Duration
+
+	OpOld func(hash common.Hash)
 }
 
 // Create a new state from a given trie.
@@ -1002,6 +1004,8 @@ func (s *StateDB) Commit(deleteEmptyObjects bool) (root common.Hash, err error) 
 
 	defer s.clearJournalAndRefund()
 
+	s.trie.SetCallBack(s.OpOld)
+
 	// Increasing node version in memory database
 	s.db.TrieDB().IncrVersion()
 
@@ -1011,6 +1015,7 @@ func (s *StateDB) Commit(deleteEmptyObjects bool) (root common.Hash, err error) 
 	// Commit objects to the trie.
 	for addr, stateObject := range s.stateObjects {
 		_, isDirty := s.stateObjectsDirty[addr]
+		stateObject.OpOld = s.OpOld
 		switch {
 		case stateObject.suicided || (isDirty && deleteEmptyObjects && stateObject.empty()):
 			// If the object has been removed, don't bother syncing it

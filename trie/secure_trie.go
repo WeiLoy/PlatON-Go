@@ -38,6 +38,8 @@ type SecureTrie struct {
 	hashKeyBuf       [common.HashLength]byte
 	secKeyCache      map[string][]byte
 	secKeyCacheOwner *SecureTrie // Pointer to self, replace the key cache on mismatch
+
+	OpOld func(hash common.Hash)
 }
 
 // NewSecure creates a trie with an existing root node from a backing database
@@ -60,6 +62,22 @@ func NewSecure(root common.Hash, db *Database) (*SecureTrie, error) {
 		return nil, err
 	}
 	return &SecureTrie{trie: *trie}, nil
+}
+
+func NewSecureCallBack(root common.Hash, db *Database, opOld func(hash common.Hash)) (*SecureTrie, error) {
+	if db == nil {
+		panic("trie.NewSecure called without a database")
+	}
+	trie, err := New(root, db)
+	if err != nil {
+		return nil, err
+	}
+	trie.OpOld = opOld
+	return &SecureTrie{trie: *trie}, nil
+}
+
+func (t *SecureTrie) SetCallBack(callBack func(hash common.Hash)) {
+	t.OpOld = callBack
 }
 
 // Get returns the value for key stored in the trie.

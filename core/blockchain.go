@@ -1277,6 +1277,12 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	rawdb.WriteBlock(bc.db, block)
 
 	triedb := bc.stateCache.TrieDB()
+
+	oldHash := make([]common.Hash, 0)
+	state.OpOld = func(hash common.Hash) {
+		oldHash = append(oldHash, hash)
+	}
+
 	root, err := state.Commit(true)
 
 	if err != nil {
@@ -1289,17 +1295,22 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 		limit := common.StorageSize(bc.cacheConfig.TrieDirtyLimit) * 1024 * 1024
 		oversize := false
 		if !(bc.cacheConfig.DBGCMpt && !bc.cacheConfig.DBDisabledGC.IsSet()) {
-			triedb.ReferenceVersion(root)
+			//triedb.ReferenceVersion(root)
 			if err := triedb.Commit(root, false, false); err != nil {
 				log.Error("Commit to triedb error", "root", root)
 				return NonStatTy, err
 			}
-			triedb.Dereference(currentBlock.Root())
+			for _, h := range oldHash {
+				triedb.Dereference(h)
+			}
 			nodes, _ := triedb.Size()
 			oversize = nodes > limit
 		} else {
-			triedb.ReferenceVersion(root)
-			triedb.DereferenceDB(currentBlock.Root())
+			//triedb.ReferenceVersion(root)
+
+			for _, h := range oldHash {
+				triedb.DereferenceDB(h)
+			}
 
 			if err := triedb.Commit(root, false, false); err != nil {
 				log.Error("Commit to triedb error", "root", root)

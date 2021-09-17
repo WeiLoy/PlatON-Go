@@ -97,6 +97,8 @@ type stateObject struct {
 	dirtyCode bool // true if the code was updated
 	suicided  bool
 	deleted   bool
+
+	OpOld func(hash common.Hash)
 }
 
 // empty returns whether the account is considered empty.
@@ -184,12 +186,13 @@ func (c *stateObject) touch() {
 func (c *stateObject) getTrie(db Database) Trie {
 	if c.trie == nil {
 		var err error
-		c.trie, err = db.OpenStorageTrie(c.addrHash, c.data.Root)
+		c.trie, err = db.OpenStorageTrieCallBack(c.addrHash, c.data.Root, c.OpOld)
 		if err != nil {
-			c.trie, _ = db.OpenStorageTrie(c.addrHash, common.Hash{})
+			c.trie, _ = db.OpenStorageTrieCallBack(c.addrHash, common.Hash{}, c.OpOld)
 			c.setError(fmt.Errorf("can't create storage trie: %v", err))
 		}
 	}
+	c.trie.SetCallBack(c.OpOld)
 	return c.trie
 }
 
@@ -341,7 +344,6 @@ func (self *stateObject) updateTrie(db Database) Trie {
 			self.setError(tr.TryDelete([]byte(key)))
 			continue
 		}
-
 		// Encoding []byte cannot fail, ok to ignore the error.
 		v, _ := rlp.EncodeToBytes(value)
 		self.setError(tr.TryUpdate([]byte(key), v))

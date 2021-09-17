@@ -52,6 +52,10 @@ func (db *odrDatabase) OpenStorageTrie(addrHash, root common.Hash) (state.Trie, 
 	return &odrTrie{db: db, id: StorageTrieID(db.id, addrHash, root)}, nil
 }
 
+func (db *odrDatabase) OpenStorageTrieCallBack(addrHash, root common.Hash, opOld func(hash common.Hash)) (state.Trie, error) {
+	return &odrTrie{db: db, id: StorageTrieID(db.id, addrHash, root), OpOld: opOld}, nil
+}
+
 func (db *odrDatabase) CopyTrie(t state.Trie) state.Trie {
 	switch t := t.(type) {
 	case *odrTrie:
@@ -94,9 +98,14 @@ func (db *odrDatabase) TrieDB() *trie.Database {
 }
 
 type odrTrie struct {
-	db   *odrDatabase
-	id   *TrieID
-	trie *trie.Trie
+	db    *odrDatabase
+	id    *TrieID
+	trie  *trie.Trie
+	OpOld func(hash common.Hash)
+}
+
+func (t *odrTrie) SetCallBack(callBack func(hash common.Hash)) {
+	t.OpOld = callBack
 }
 
 func (t *odrTrie) TryGet(key []byte) ([]byte, error) {

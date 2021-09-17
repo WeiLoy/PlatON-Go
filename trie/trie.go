@@ -52,6 +52,8 @@ type Trie struct {
 	root node
 
 	dag *trieDag
+
+	OpOld func(hash common.Hash)
 }
 
 // newFlag returns the cache flag value for a newly created node.
@@ -216,6 +218,8 @@ func (t *Trie) insert(n node, fprefix, prefix, key []byte, value node) (bool, no
 			if !dirty || err != nil {
 				return false, n, err
 			}
+			oldH, _ := n.cache()
+			t.OpOld(common.BytesToHash(oldH))
 			rn := &shortNode{n.Key, nn, t.newFlag()}
 			if t.dag != nil {
 				//fmt.Printf("257: del vtx -> prefix: %x\n", append(prefix, n.Key...))
@@ -244,7 +248,8 @@ func (t *Trie) insert(n node, fprefix, prefix, key []byte, value node) (bool, no
 		if err != nil {
 			return false, nil, err
 		}
-
+		oldH, _ := n.cache()
+		t.OpOld(common.BytesToHash(oldH))
 		// Replace this shortNode with the branch if it occurs at index 0.
 		if matchlen == 0 {
 			if t.dag != nil {
@@ -271,6 +276,8 @@ func (t *Trie) insert(n node, fprefix, prefix, key []byte, value node) (bool, no
 			//fmt.Printf("302: del vtx -> prefix: %x\n", append(prefix, fullNodeSuffix...))
 			t.dag.delVertexAndEdge(byteutil.Concat(prefix, fullNodeSuffix...))
 		}
+		oldH, _ := n.cache()
+		t.OpOld(common.BytesToHash(oldH))
 		n = n.copy()
 		n.flags = t.newFlag()
 		n.Children[key[0]] = nn

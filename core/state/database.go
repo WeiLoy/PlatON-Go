@@ -40,6 +40,8 @@ type Database interface {
 	// OpenStorageTrie opens the storage trie of an account.
 	OpenStorageTrie(addrHash, root common.Hash) (Trie, error)
 
+	OpenStorageTrieCallBack(addrHash, root common.Hash, opOld func(hash common.Hash)) (Trie, error)
+
 	// CopyTrie returns an independent copy of the given trie.
 	CopyTrie(Trie) Trie
 
@@ -66,6 +68,7 @@ type Trie interface {
 	NodeIterator(startKey []byte) trie.NodeIterator
 	GetKey([]byte) []byte // TODO(fjl): remove this when SecureTrie is removed
 	Prove(key []byte, fromLevel uint, proofDb ethdb.KeyValueWriter) error
+	SetCallBack(callBack func(hash common.Hash))
 }
 
 // NewDatabase creates a backing store for state. The returned database is safe for
@@ -99,6 +102,11 @@ func (db *cachingDB) OpenTrie(root common.Hash) (Trie, error) {
 // OpenStorageTrie opens the storage trie of an account.
 func (db *cachingDB) OpenStorageTrie(addrHash, root common.Hash) (Trie, error) {
 	return trie.NewSecure(root, db.db)
+}
+
+// OpenStorageTrie opens the storage trie of an account.
+func (db *cachingDB) OpenStorageTrieCallBack(addrHash, root common.Hash, opOld func(hash common.Hash)) (Trie, error) {
+	return trie.NewSecureCallBack(root, db.db, opOld)
 }
 
 // CopyTrie returns an independent copy of the given trie.

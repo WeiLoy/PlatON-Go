@@ -690,36 +690,36 @@ func (db *Database) dereference(hash common.Hash, clearFn func([]byte), start ti
 		log.Warn("DereferenceDB overtime, Interrupt the dereference", "duration", time.Since(start))
 		return
 	}
-	if node.version < db.NodeVersion() {
-		// Remove the node from the flush-list
-		switch hash {
-		case db.oldest:
-			db.oldest = node.flushNext
-			db.dirties[node.flushNext].flushPrev = common.Hash{}
-		case db.newest:
-			db.newest = node.flushPrev
-			db.dirties[node.flushPrev].flushNext = common.Hash{}
-		default:
-			db.dirties[node.flushPrev].flushNext = node.flushNext
-			db.dirties[node.flushNext].flushPrev = node.flushPrev
-		}
-		// Dereference all children and delete the node
-		node.forChilds(func(h common.Hash) {
-			db.dereference(h, clearFn, start)
-		})
-		delete(db.dirties, hash)
+	//if node.version < db.NodeVersion() {
+	// Remove the node from the flush-list
+	switch hash {
+	case db.oldest:
+		db.oldest = node.flushNext
+		db.dirties[node.flushNext].flushPrev = common.Hash{}
+	case db.newest:
+		db.newest = node.flushPrev
+		db.dirties[node.flushPrev].flushNext = common.Hash{}
+	default:
+		db.dirties[node.flushPrev].flushNext = node.flushNext
+		db.dirties[node.flushNext].flushPrev = node.flushPrev
+	}
+	// Dereference all children and delete the node
+	/*node.forChilds(func(h common.Hash) {
+		db.dereference(h, clearFn, start)
+	})*/
+	delete(db.dirties, hash)
 
-		if clearFn != nil {
-			// rawNode is contract code, only remove trie node
-			if _, ok := node.node.(rawNode); !ok {
-				clearFn(hash.Bytes())
-			}
-		}
-		db.dirtiesSize -= common.StorageSize(common.HashLength + int(node.size))
-		if node.children != nil {
-			db.childrenSize -= cachedNodeChildrenSize
+	if clearFn != nil {
+		// rawNode is contract code, only remove trie node
+		if _, ok := node.node.(rawNode); !ok {
+			clearFn(hash.Bytes())
 		}
 	}
+	db.dirtiesSize -= common.StorageSize(common.HashLength + int(node.size))
+	if node.children != nil {
+		db.childrenSize -= cachedNodeChildrenSize
+	}
+	//}
 }
 
 func (db *Database) CapNode(limit common.StorageSize) {

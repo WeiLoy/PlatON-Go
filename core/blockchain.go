@@ -1278,11 +1278,6 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 
 	triedb := bc.stateCache.TrieDB()
 
-	oldHash := make([]common.Hash, 0)
-	state.OpOld = func(hash common.Hash) {
-		oldHash = append(oldHash, hash)
-	}
-
 	root, err := state.Commit(true)
 
 	if err != nil {
@@ -1300,7 +1295,7 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 				log.Error("Commit to triedb error", "root", root)
 				return NonStatTy, err
 			}
-			for i, h := range oldHash {
+			for i, h := range state.OldHash {
 				triedb.Dereference(h)
 				log.Error("Dereference", "count=", i, "hash", h.TerminalString())
 			}
@@ -1309,7 +1304,7 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 		} else {
 			//triedb.ReferenceVersion(root)
 
-			for i, h := range oldHash {
+			for i, h := range state.OldHash {
 				triedb.DereferenceDB(h)
 				log.Error("DereferenceDB", "count=", i, "hash", h.TerminalString())
 			}

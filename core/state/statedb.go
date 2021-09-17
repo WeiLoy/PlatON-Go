@@ -115,6 +115,8 @@ type StateDB struct {
 	StorageCommits time.Duration
 
 	OpOld func(hash common.Hash)
+
+	OldHash []common.Hash
 }
 
 // Create a new state from a given trie.
@@ -133,7 +135,12 @@ func New(root common.Hash, db Database) (*StateDB, error) {
 		journal:            newJournal(),
 		clearReferenceFunc: make([]func(), 0),
 		originRoot:         root,
+		OldHash:            make([]common.Hash, 0),
 	}
+	state.OpOld = func(hash common.Hash) {
+		state.OldHash = append(state.OldHash, hash)
+	}
+	state.trie.SetCallBack(state.OpOld)
 	return state, nil
 }
 
@@ -150,10 +157,15 @@ func (self *StateDB) NewStateDB() *StateDB {
 		parent:             self,
 		clearReferenceFunc: make([]func(), 0),
 		originRoot:         self.Root(),
+		OldHash:            make([]common.Hash, 0),
 	}
 
 	index := self.AddReferenceFunc(stateDB.clearParentRef)
 	stateDB.referenceFuncIndex = index
+	stateDB.OpOld = func(hash common.Hash) {
+		stateDB.OldHash = append(stateDB.OldHash, hash)
+	}
+	stateDB.trie.SetCallBack(stateDB.OpOld)
 
 	//if stateDB.parent != nil {
 	//	stateDB.parent.DumpStorage(false)
@@ -240,6 +252,11 @@ func (self *StateDB) Reset(root common.Hash) error {
 	self.logSize = 0
 	self.preimages = make(map[common.Hash][]byte)
 	self.clearJournalAndRefund()
+	self.OldHash = make([]common.Hash, 0)
+	self.OpOld = func(hash common.Hash) {
+		self.OldHash = append(self.OldHash, hash)
+	}
+	self.trie.SetCallBack(self.OpOld)
 	return nil
 }
 
@@ -846,7 +863,10 @@ func (self *StateDB) Copy() *StateDB {
 		journal:            newJournal(),
 		clearReferenceFunc: make([]func(), 0),
 		originRoot:         self.originRoot,
+		OldHash:            self.OldHash,
 	}
+	state.OpOld = self.OpOld
+	state.trie.SetCallBack(state.OpOld)
 
 	// Copy the dirty states, logs, and preimages
 	for addr := range self.journal.dirties {
@@ -942,6 +962,7 @@ func (self *StateDB) GetRefund() uint64 {
 func (s *StateDB) Finalise(deleteEmptyObjects bool) {
 	for addr := range s.journal.dirties {
 		stateObject, exist := s.stateObjects[addr]
+		stateObject.OpOld = s.OpOld
 		if !exist {
 			// ripeMD is 'touched' at block 1714175, in tx 0x1237f737031e40bcde4a8b7e717b2d15e3ecadfe49bb1bbc71ee9deb09c6fcf2
 			// That tx goes out of gas, and although the notion of 'touched' does not exist there, the

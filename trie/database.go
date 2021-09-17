@@ -708,7 +708,7 @@ func (db *Database) dereference(hash common.Hash, clearFn func([]byte), start ti
 		db.dereference(h, clearFn, start)
 	})*/
 	delete(db.dirties, hash)
-
+	log.Warn("delete node", "hash", hash.TerminalString())
 	if clearFn != nil {
 		// rawNode is contract code, only remove trie node
 		if _, ok := node.node.(rawNode); !ok {

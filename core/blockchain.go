@@ -1300,16 +1300,18 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 				log.Error("Commit to triedb error", "root", root)
 				return NonStatTy, err
 			}
-			for _, h := range oldHash {
+			for i, h := range oldHash {
 				triedb.Dereference(h)
+				log.Error("Dereference", "count=", i, "hash", h.TerminalString())
 			}
 			nodes, _ := triedb.Size()
 			oversize = nodes > limit
 		} else {
 			//triedb.ReferenceVersion(root)
 
-			for _, h := range oldHash {
+			for i, h := range oldHash {
 				triedb.DereferenceDB(h)
+				log.Error("DereferenceDB", "count=", i, "hash", h.TerminalString())
 			}
 
 			if err := triedb.Commit(root, false, false); err != nil {

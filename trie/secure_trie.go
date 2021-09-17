@@ -78,6 +78,7 @@ func NewSecureCallBack(root common.Hash, db *Database, opOld func(hash common.Ha
 
 func (t *SecureTrie) SetCallBack(callBack func(hash common.Hash)) {
 	t.OpOld = callBack
+	t.trie.OpOld = t.OpOld
 }
 
 // Get returns the value for key stored in the trie.

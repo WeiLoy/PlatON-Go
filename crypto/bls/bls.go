@@ -9,8 +9,10 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"io"
 	"io/ioutil"
+	"math/big"
 	"os"
 	"strings"
 	"unsafe"
@@ -303,6 +305,10 @@ func (pub *PublicKey) GetHexString() string {
 	return pub.v.GetString(16)
 }
 
+func (pub *PublicKey) GetDecString() string {
+	return pub.v.GetString(10)
+}
+
 // SetHexString --
 func (pub *PublicKey) SetHexString(s string) error {
 	return pub.v.SetString(s, 16)
@@ -382,6 +388,10 @@ func (sign *Sign) Deserialize(buf []byte) error {
 // GetHexString --
 func (sign *Sign) GetHexString() string {
 	return sign.v.GetString(16)
+}
+
+func (sign *Sign) GetDecString() string {
+	return sign.v.GetString(10)
 }
 
 // SetHexString --
@@ -521,6 +531,21 @@ func BatchVerifySameMsg(curve int, msg string, pkVec []PublicKey, sign Sign) err
 		pk.Add(&pkVec[i])
 		//		sig.Add(&signVec[i])
 	}
+	P := GetGeneratorOfG2()
+	fmt.Println("GetGeneratorOfG2 dec", P.GetDecString())
+	fmt.Println("GetGeneratorOfG2 hex", P.GetHexString())
+
+	// The prime q in the base field F_q for G1
+	q, _ := new(big.Int).SetString("21888242871839275222246405745257275088696311157297823662689037894645226208583", 10)
+	signBytes, _ := hexutil.Decode("0x28835aa79d407022773970bbae3852a6f5490fe483431b93e7d6d186d622ad24")
+	signatureBigInt := new(big.Int).SetBytes(signBytes)
+	fmt.Println("negate sign:", hex.EncodeToString(new(big.Int).Sub(q, new(big.Int).Mod(signatureBigInt, q)).Bytes()))
+
+	fmt.Println("-----------------")
+	msg64 := make([]byte, 64)
+	copy(msg64, []byte(msg))
+	fmt.Println("test duopk", pk.GetHexString(), "sign", sign.GetHexString(), "msg", hex.EncodeToString(msg64), string(msg64))
+	fmt.Println("-----------------")
 	if !sign.Verify(&pk, msg) {
 		return errors.New("signature verification failed")
 	}
@@ -540,6 +565,8 @@ func BatchVerifyDistinctMsg(curve int, pkVec []PublicKey, msgVec []Sign, sign Si
 		sig.Add(&signVec[i])
 	}*/
 	P := GetGeneratorOfG2()
+	fmt.Println("GetGeneratorOfG2 dec", P.GetDecString())
+	fmt.Println("GetGeneratorOfG2 hex", P.GetHexString())
 	var e, e1, e2 GT
 	Pairing(&e, &(sign.v), &(P.v))
 
@@ -549,6 +576,7 @@ func BatchVerifyDistinctMsg(curve int, pkVec []PublicKey, msgVec []Sign, sign Si
 		Pairing(&e2, &(msgVec[j].v), &(pkVec[j].v))
 		GTMul(&e2, &e1, &e2)
 		e1 = e2
+		e1.Serialize()
 	}
 	if !e.IsEqual(&e2) {
 		return errors.New("not equal pairing\n")

@@ -21,6 +21,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -227,6 +228,7 @@ func (c *sha256hash) RequiredGas(input []byte) uint64 {
 }
 func (c *sha256hash) Run(input []byte) ([]byte, error) {
 	h := sha256.Sum256(input)
+	fmt.Println("sha256hash", "before", hexutil.Encode(input), "after", hexutil.Encode(h[:]))
 	return h[:], nil
 }
 
@@ -421,6 +423,7 @@ func (c *bn256ScalarMul) Run(input []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	fmt.Println("call msg Hash:", hexutil.Encode(getData(input, 64, 32)))
 	res := new(bn256.G1)
 	res.ScalarMult(p, new(big.Int).SetBytes(getData(input, 64, 32)))
 	return res.Marshal(), nil
@@ -456,6 +459,7 @@ func (c *bn256Pairing) Run(input []byte) ([]byte, error) {
 		ts []*bn256.G2
 	)
 	for i := 0; i < len(input); i += 192 {
+		fmt.Println("G1 Hex:", hexutil.Encode(input[i:i+32]), hexutil.Encode(input[i+32:i+64]))
 		c, err := newCurvePoint(input[i : i+64])
 		if err != nil {
 			return nil, err

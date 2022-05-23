@@ -27,6 +27,9 @@ const CurveFp382_2 = C.mclBn_CurveFp382_2
 // BLS12_381
 const BLS12_381 = C.MCL_BLS12_381
 
+// Bn_CurveSNARK1
+const CurveSNARK1 = C.mclBn_CurveSNARK1
+
 // IoSerializeHexStr
 const IoSerializeHexStr = C.MCLBN_IO_SERIALIZE_HEX_STR
 
@@ -331,7 +334,6 @@ func (x *G2) getPointer() (p *C.mclBnG2) {
 	// #nosec
 	return (*C.mclBnG2)(unsafe.Pointer(x))
 }
-
 
 // Clear --
 func (x *G2) Clear() {
@@ -649,4 +651,3 @@ func G2LagrangeInterpolation(out *G2, xVec []Fr, yVec []G2) error {
 	}
 	return nil
 }
-

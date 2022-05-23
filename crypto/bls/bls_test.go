@@ -1,6 +1,11 @@
 package bls
 
 import (
+	"crypto/sha256"
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"github.com/PlatONnetwork/PlatON-Go/crypto/bn256"
+	"golang.org/x/crypto/sha3"
+	"math/big"
 	"testing"
 
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
@@ -344,27 +349,27 @@ func testDHKeyExchange(t *testing.T) {
 }
 
 func test(t *testing.T, c int) {
-	err := Init(c)
-	if err != nil {
-		t.Fatal(err)
-	}
-	unitN = GetOpUnitSize()
-	t.Logf("unitN=%d\n", unitN)
-	testPairing(t)
-	testPre(t)
-	testRecoverSecretKey(t)
-	testAdd(t)
-	testSign(t)
-	testPop(t)
-	testData(t)
-	testStringConversion(t)
-	testOrder(t, c)
-	testDHKeyExchange(t)
-	//add
-	testByCs(t)
+	//err := Init(c)
+	//if err != nil {
+	//	t.Fatal(err)
+	//}
+	//unitN = GetOpUnitSize()
+	//t.Logf("unitN=%d\n", unitN)
+	//testPairing(t)
+	//testPre(t)
+	//testRecoverSecretKey(t)
+	//testAdd(t)
+	//testSign(t)
+	//testPop(t)
+	//testData(t)
+	//testStringConversion(t)
+	////testOrder(t, c)
+	//testDHKeyExchange(t)
+	////add
+	//testByCs(t)
 	testAggregateSign(t, c)
-	testSchnorr_test(t, c)
-	testSchnorrNIZk(t, c)
+	//testSchnorr_test(t, c)
+	//testSchnorrNIZk(t, c)
 	//testProofText(t, c)
 
 }
@@ -373,8 +378,8 @@ func TestNmain(t *testing.T) {
 	t.Logf("GetMaxOpUnitSize() = %d\n", GetMaxOpUnitSize())
 	t.Logf("GetFrUnitSize() = %d\n", GetFrUnitSize())
 	t.Log("CurveFp254BNb")
-	test(t, CurveFp254BNb)
-	if GetMaxOpUnitSize() == 6 {
+	test(t, CurveSNARK1)
+	/*if GetMaxOpUnitSize() == 6 {
 		if GetFrUnitSize() == 6 {
 			t.Log("CurveFp382_1")
 			test(t, CurveFp382_1)
@@ -384,7 +389,7 @@ func TestNmain(t *testing.T) {
 			t.Log("BLS12_381")
 			test(t, BLS12_381)
 		}
-	}
+	}*/
 }
 
 //add @20190716
@@ -408,12 +413,48 @@ func TestForGetG(t *testing.T) {
 	}
 }
 
+func newCurvePoint(blob []byte) (*bn256.G1, error) {
+	p := new(bn256.G1)
+	if _, err := p.Unmarshal(blob); err != nil {
+		return nil, err
+	}
+	return p, nil
+}
+
+func newTwistPoint(blob []byte) (*bn256.G2, error) {
+	p := new(bn256.G2)
+	if _, err := p.Unmarshal(blob); err != nil {
+		return nil, err
+	}
+	return p, nil
+}
+
 func testAggregateSign(t *testing.T, c int) {
+	c = CurveSNARK1
 	err := Init(c)
 	if err != nil {
 		t.Fatal(err)
 	}
-	m := "test test"
+	m := "1"
+	keccHash := crypto.Keccak256Hash([]byte("1"))
+	sha3_256 := sha3.Sum256([]byte("1"))
+	sha256Hash := sha256.Sum256([]byte("1"))
+	cgosha256 := []byte{107, 134, 178, 115, 255, 52, 252, 225,
+		157, 107, 128, 78, 255, 90, 63, 87,
+		71, 173, 164, 234, 162, 47, 29, 73,
+		192, 30, 82, 221, 183, 135, 91, 75}
+	fmt.Println("compare hash", "kecHash", keccHash.Hex(), "sha3_256", hexutil.Encode(sha3_256[:]), "sha256Hash", hexutil.Encode(sha256Hash[:]),
+		"cgoHash", hexutil.Encode(cgosha256))
+	var msgG1 Sign
+	msgG1.v.HashAndMapTo([]byte("1"))
+	cuOrder, _ := new(big.Int).SetString(GetCurveOrder(), 10)
+	fiOrder, _ := new(big.Int).SetString(GetCurveOrder(), 10)
+	fmt.Println("GetCurveOrder():", GetCurveOrder(), len(cuOrder.Bytes()))
+	fmt.Println("GetFieldOrder():", GetFieldOrder(), len(fiOrder.Bytes()))
+
+	fmt.Println("msgHash:", keccHash.Hex())
+	//fmt.Println("msg hex:", hexutil.Encode(new(big.Int).SetBytes([]byte(m)).Bytes()))
+	fmt.Println("HashAndMapTo:", msgG1.GetHexString())
 	var k int = 3
 	msk := make([]SecretKey, k)
 	mpk := make([]PublicKey, k)
@@ -425,6 +466,53 @@ func testAggregateSign(t *testing.T, c int) {
 		fmt.Printf("msk[%d]=%s\n", i, msk[i].GetHexString())
 		fmt.Printf("mpk[%d]=%s\n", i, mpk[i].GetHexString())
 		fmt.Printf("msig[%d]=%s\n", i, msig[i].GetHexString())
+
+		/*s1, err := hexutil.Decode("0x18b89d143e40a94525c9e9aaa01317d3a13878fd3f89fe4bfb49825366b837b6")
+		if err != nil {
+			panic(err)
+		}
+		s2, err := hexutil.Decode("0x2353ad608bbe9502bef8fec5eb3cc068ccea199d3c405f73bbb7111c63fde150")
+		if err != nil {
+			panic(err)
+		}*/
+		/*
+
+			s1 = append(s1, s2...)
+			binary.LittleEndian.String()
+			new(big.Int).s*/
+
+		bigSign1, _ := new(big.Int).SetString("11181692345848957662074290878138344227085597134981019040735323471731897153462", 10)
+		bigSign2, _ := new(big.Int).SetString("6479746447046570360435714249272776082787932146211764251347798668447381926167", 10)
+		tempSignByte := make([]byte, 0)
+		tempSignByte = append(tempSignByte, bigSign1.Bytes()...)
+		tempSignByte = append(tempSignByte, bigSign2.Bytes()...)
+		tsign, err := newCurvePoint(tempSignByte)
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println("newCurvePoint(input[i : i+64])", tsign, err, "len", len(tempSignByte))
+		fmt.Println("tsign Marshal:", "len:", len(tsign.Marshal()), hexutil.Encode(tsign.Marshal()))
+
+		/*pk1, _ := hexutil.Decode("0x166cf2aa2bba8cdb70fe6ed816fa3f09b1e223347ac8e8a757b335fad4eab9e9")
+		pk2, _ := hexutil.Decode("0x220f14c31a92d4339840275bb1a70a9b788668b8bd876b81bb2c2b4a24c3493d")
+		pk3, _ := hexutil.Decode("0x2baa97a06ac8313ae4222689b32318af3e39c6390460411cb3bb3797b30d8679")
+		pk4, _ := hexutil.Decode("0x2ff946b3b1a4067bf0d6529992a18d6ec4d979a4b80eae212f7327a3c00e1be1")*/
+		pk1, _ := new(big.Int).SetString("6113083414606956306240873673132027588861879190524899108509080153151285507543", 10)
+		pk2, _ := new(big.Int).SetString("16242682549308809807323456552341586602378002612562224286195274140399295058726", 10)
+		pk3, _ := new(big.Int).SetString("11291977434514029560374093314281851454388764465352618854337126145205310756123", 10)
+		pk4, _ := new(big.Int).SetString("20385218250388115367209399252938782547406668977531233989565714340424265097310", 10)
+
+		tempPKByte := make([]byte, 0)
+		tempPKByte = append(tempPKByte, pk2.Bytes()...)
+		tempPKByte = append(tempPKByte, pk1.Bytes()...)
+		tempPKByte = append(tempPKByte, pk4.Bytes()...)
+		tempPKByte = append(tempPKByte, pk3.Bytes()...)
+		tpk, err := newTwistPoint(tempPKByte)
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println("newTwistPoint", tpk)
+
 		if !msig[i].Verify(&mpk[i], m) {
 			fmt.Println("verify fail")
 		}
@@ -433,7 +521,7 @@ func testAggregateSign(t *testing.T, c int) {
 	for i := 0; i < len(msig); i++ {
 		sig.Add(&msig[i])
 	}
-	fmt.Printf("sig=%s\n", sig.GetHexString())
+	fmt.Printf("cesi sig=%s\n", sig.GetHexString())
 
 	err = BatchVerifySameMsg(c, m, mpk, sig)
 	if err != nil {

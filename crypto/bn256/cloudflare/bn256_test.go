@@ -3,11 +3,19 @@ package bn256
 import (
 	"bytes"
 	"crypto/rand"
+	"crypto/sha256"
+	"encoding/hex"
+	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/stretchr/testify/assert"
+	"math/big"
+	"strconv"
 	"testing"
 )
 
 func TestG1Marshal(t *testing.T) {
-	_, Ga, err := RandomG1(rand.Reader)
+	gorigin, Ga, err := RandomG1(rand.Reader)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -23,6 +31,79 @@ func TestG1Marshal(t *testing.T) {
 	if !bytes.Equal(ma, mb) {
 		t.Fatal("bytes are different")
 	}
+	hash1 := crypto.Keccak256Hash([]byte("1"))
+	selfG1 := new(G1).ScalarBaseMult(new(big.Int).SetBytes(hash1.Bytes()))
+	fmt.Println(hex.EncodeToString(selfG1.Marshal()))
+	fmt.Println(selfG1.String())
+	dfG2 := &G2{twistGen}
+	fmt.Println("generatorG2", dfG2.String(), gorigin)
+
+	//W := Ga
+	PK := new(G2).ScalarBaseMult(gorigin)
+
+	gorigin2, _, err := RandomG1(rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	PK2 := new(G2).ScalarBaseMult(gorigin2)
+
+	msg := "1"
+	signature := sign(gorigin, []byte(msg))
+
+	signature2 := sign(gorigin2, []byte(msg))
+
+	mergeSign := new(G1).Add(signature, signature2)
+	mergePK := new(G2).Add(PK, PK2)
+
+	G1List := make([]*G1, 0)
+	G2List := make([]*G2, 0)
+	G1List = append(G1List, new(G1).Neg(mergeSign))
+	G2List = append(G2List, dfG2)
+
+	G1List = append(G1List, hashToG1([]byte(msg)))
+	G2List = append(G2List, mergePK)
+	pr1 := Pair(mergeSign, dfG2)
+	pr2 := Pair(hashToG1([]byte(msg)), mergePK)
+	fmt.Println("pr1==pr2", pr1.String() == pr2.String())
+	fmt.Println("pr1:", pr1.String())
+	fmt.Println("pr2:", pr2.String())
+	assert.True(t, PairingCheck(G1List, G2List))
+	fmt.Println("----------")
+	fmt.Println("signature", signature.String())
+	fmt.Println("pk", PK.String())
+	fmt.Println("msgG1", hashToG1([]byte(msg)).String(), hashToG1([]byte(msg)).p.y.String())
+
+	G21, _ := new(big.Int).SetString("1800deef121f1e76426a00665e5c4479674322d4f75edadd46debd5cd992f6ed", 16)
+	fmt.Println("g2dec:", G21)
+
+	// The prime q in the base field F_q for G1
+	q, _ := new(big.Int).SetString("21888242871839275222246405745257275088696311157297823662689037894645226208583", 10)
+	signBytes, _ := hexutil.Decode("23f5d1a185178b2e02f5f20c032d5ddda8ff05382350c05698aec4c1491d6553")
+	signatureBigInt := new(big.Int).SetBytes(signBytes)
+	fmt.Println("negate sign:", hex.EncodeToString(new(big.Int).Sub(q, new(big.Int).Mod(signatureBigInt, q)).Bytes()))
+
+	fmt.Println(len(P.Bytes()))
+
+	fmt.Println("-------------------C++")
+	sh256Out := sha256.Sum256([]byte(strconv.Itoa(1)))
+	x := sh256Out[:]
+	L := len(P.Bytes())
+	maxL := new(big.Int).SetUint64((1 << L) - 1)
+	fmt.Println(x, (1<<L)-1, len(maxL.Bytes()), maxL)
+
+	fmt.Println(sha256.Sum256([]byte("h2c")))
+
+}
+
+func hashToG1(msg []byte) *G1 {
+	hash1 := crypto.Keccak256Hash(msg)
+	selfG1 := new(G1).ScalarBaseMult(new(big.Int).SetBytes(hash1.Bytes()))
+	return selfG1
+}
+
+func sign(prik *big.Int, msg []byte) *G1 {
+	msgG1 := hashToG1(msg)
+	return new(G1).ScalarMult(msgG1, prik)
 }
 
 func TestG2Marshal(t *testing.T) {

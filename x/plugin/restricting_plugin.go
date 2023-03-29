@@ -14,10 +14,10 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package plugin
 
 import (
+	"errors"
 	"fmt"
 	"math/big"
 	"sort"
@@ -359,7 +359,7 @@ func (rp *RestrictingPlugin) MixAdvanceLockedFunds(account common.Address, amoun
 			//if not found restricting,we just use free
 			origin := state.GetBalance(account)
 			if origin.Cmp(amount) < 0 {
-				return nil, nil, staking.ErrAccountVonNoEnough
+				return nil, nil, errors.New("the account balance is insufficient")
 			}
 			rp.transferAmount(state, account, vm.StakingContractAddr, amount)
 			return new(big.Int), new(big.Int).Set(amount), nil

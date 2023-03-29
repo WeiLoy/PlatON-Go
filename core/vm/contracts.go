@@ -20,14 +20,8 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"errors"
-	"fmt"
 	"github.com/hashkey-chain/hashkey-chain/crypto/bls12381"
 	"math/big"
-
-	"github.com/hashkey-chain/hashkey-chain/log"
-	"github.com/hashkey-chain/hashkey-chain/x/handler"
-
-	vrf2 "github.com/hashkey-chain/hashkey-chain/crypto/vrf"
 
 	"github.com/hashkey-chain/hashkey-chain/crypto/blake2b"
 
@@ -124,24 +118,19 @@ func (re *rewardEmpty) FnSigns() map[uint16]interface{} {
 var PlatONPrecompiledContracts = map[common.Address]PrecompiledContract{
 	vm.ValidatorInnerContractAddr: &validatorInnerContract{},
 	// add by economic model
-	vm.StakingContractAddr:     &StakingContract{},
 	vm.RestrictingContractAddr: &RestrictingContract{},
 	vm.SlashingContractAddr:    &SlashingContract{},
 	vm.GovContractAddr:         &GovContract{},
 	vm.RewardManagerPoolAddr:   &rewardEmpty{},
-	vm.DelegateRewardPoolAddr:  &DelegateRewardContract{},
 }
 
 var PlatONPrecompiledContracts120 = map[common.Address]PrecompiledContract{
 	vm.ValidatorInnerContractAddr: &validatorInnerContract{},
 	// add by economic model
-	vm.StakingContractAddr:     &StakingContract{},
 	vm.RestrictingContractAddr: &RestrictingContract{},
 	vm.SlashingContractAddr:    &SlashingContract{},
 	vm.GovContractAddr:         &GovContract{},
 	vm.RewardManagerPoolAddr:   &rewardEmpty{},
-	vm.DelegateRewardPoolAddr:  &DelegateRewardContract{},
-	vm.VrfInnerContractAddr:    &vrf{},
 }
 
 // RunPrecompiledContract runs and evaluates the output of a precompiled contract.
@@ -990,79 +979,4 @@ func (c *bls12381MapG2) Run(input []byte) ([]byte, error) {
 
 	// Encode the G2 point to 256 bytes
 	return g.EncodePoint(r), nil
-}
-
-type vrf struct {
-	Evm *EVM
-}
-
-const vrfMaxNumWords = 500
-
-var (
-	errVrfNumWords       = errors.New("invalid NumWords value")
-	errVrfNonceNotEnough = errors.New("nonce not enough")
-)
-
-func (v vrf) RequiredGas(input []byte) uint64 {
-	// 暂时不收费
-	return 0
-}
-
-// Run 随机数生成规则,当前区块随机数 异或 (之前区块随机数) 异或 交易hash
-// 参数 unit32 随机数数量
-// 返回值 大小为32*随机数数量的byte数组,每32位为一个随机数
-func (v vrf) Run(input []byte) ([]byte, error) {
-	defer func() {
-		if er := recover(); nil != er {
-			log.Error("run vrf contract fail,parse data is failed", "error", er, "input", input)
-		}
-	}()
-	seedNum := new(big.Int).SetBytes(input).Uint64()
-
-	if seedNum > vrfMaxNumWords {
-		return nil, errVrfNumWords
-	}
-	currentBlockNum := v.Evm.Context.BlockNumber.Uint64()
-
-	if currentBlockNum < uint64(seedNum) {
-		return nil, errVrfNonceNotEnough
-	}
-	randomNumbers := make([]byte, seedNum*common.HashLength)
-	currentNonces := vrf2.ProofToHash(v.Evm.Context.Nonce.Bytes())
-
-	txHash := v.Evm.StateDB.TxHash()
-	for i := 0; i < common.HashLength; i++ {
-		randomNumbers[i] = currentNonces[i] ^ txHash[i]
-	}
-	if seedNum == 1 {
-		return randomNumbers, nil
-	}
-
-	vrf := handler.GetVrfHandlerInstance()
-	nonceInVrf, err := vrf.Load(v.Evm.Context.ParentHash)
-	if err != nil {
-		return nil, err
-	}
-
-	// cache nonce
-	if seedNum > uint64(len(nonceInVrf)) {
-		if v.Evm.Context.GetNonce(currentBlockNum-seedNum) == nil {
-			return nil, fmt.Errorf("run vrf contract fail, can't get nonce from db,num %v", currentBlockNum-seedNum)
-		}
-	}
-
-	var preNonce []byte
-	for i := 1; i < int(seedNum); i++ {
-		// 优先从VrfHandler中获取nonce, 当获取不到则从区块中拿
-		if i+1 > len(nonceInVrf) {
-			preNonce = vrf2.ProofToHash(v.Evm.Context.GetNonce(currentBlockNum - uint64(i) - 1))
-		} else {
-			preNonce = nonceInVrf[len(nonceInVrf)-i-1]
-		}
-		start := i * common.HashLength
-		for j := 0; j < common.HashLength; j++ {
-			randomNumbers[j+start] = randomNumbers[j] ^ preNonce[j]
-		}
-	}
-	return randomNumbers, nil
 }

@@ -18,12 +18,6 @@ package staking
 
 import (
 	"math/big"
-
-	"github.com/hashkey-chain/hashkey-chain/x/xutil"
-
-	"github.com/hashkey-chain/hashkey-chain/common"
-	"github.com/hashkey-chain/hashkey-chain/common/math"
-	"github.com/hashkey-chain/hashkey-chain/p2p/discover"
 )
 
 const (
@@ -158,7 +152,7 @@ func GetDelegateKey(delAddr common.Address, nodeId discover.NodeID, stakeBlockNu
 	return key
 }
 
-//notice this assume key must right
+// notice this assume key must right
 func DecodeDelegateKey(key []byte) (delAddr common.Address, nodeId discover.NodeID, stakeBlockNumber uint64) {
 	delegateKeyPrefixLength := len(DelegateKeyPrefix)
 	delAddrLength := len(delAddr) + delegateKeyPrefixLength

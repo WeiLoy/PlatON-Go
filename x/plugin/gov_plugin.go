@@ -238,7 +238,8 @@ func accuVerifiersAtBeginOfSettlement(blockHash common.Hash, blockNumber uint64)
 		return nil
 	}
 
-	verifierList, err := stk.ListVerifierNodeID(blockHash, blockNumber)
+	//verifierList, err := stk.ListVerifierNodeID(blockHash, blockNumber)
+	verifierList := make([]discover.NodeID, 0)
 	if err != nil {
 		return err
 	}
@@ -303,11 +304,11 @@ func tallyVersion(proposal *gov.VersionProposal, blockHash common.Hash, blockNum
 			log.Error("list active node failed", "proposalID", proposalID, "blockNumber", blockNumber, "blockHash", blockHash)
 			return err
 		}
-		//log.Debug("call stk.ProposalPassedNotify", "proposalID", proposalID, "activeList", activeList)
-		if err := stk.ProposalPassedNotify(blockHash, blockNumber, activeList, proposal.NewVersion); err != nil {
-			log.Error("call stk.ProposalPassedNotify failed", "proposalID", proposalID, "blockHash", blockHash, "newVersion", proposal.NewVersion, "activeList", activeList)
-			return err
-		}
+		log.Debug("call stk.ProposalPassedNotify", "proposalID", proposalID, "activeList", activeList)
+		//if err := stk.ProposalPassedNotify(blockHash, blockNumber, activeList, proposal.NewVersion); err != nil {
+		//	log.Error("call stk.ProposalPassedNotify failed", "proposalID", proposalID, "blockHash", blockHash, "newVersion", proposal.NewVersion, "activeList", activeList)
+		//	return err
+		//}
 
 	} else {
 		if err := gov.MoveVotingProposalIDToEnd(proposalID, blockHash); err != nil {

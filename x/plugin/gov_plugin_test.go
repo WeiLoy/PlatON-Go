@@ -71,11 +71,8 @@ func setup(t *testing.T) func() {
 
 	GovPluginInstance().SetChainID(chainID)
 	govPlugin = GovPluginInstance()
-	stk = StakingInstance()
 
 	lastBlockHash = genesis.Hash()
-
-	build_staking_data(genesis.Hash())
 
 	snapdb = snapshotdb.Instance()
 
@@ -985,7 +982,6 @@ func TestGovPlugin_textProposalPassed(t *testing.T) {
 	lastBlockHash = lastHeader.Hash()
 	sndb.SetCurrent(lastBlockHash, *big.NewInt(int64(lastBlockNumber)), *big.NewInt(int64(lastBlockNumber)))
 
-	build_staking_data_more(uint64(xutil.CalcBlocksEachEpoch()))
 	beginBlock(t)
 	sndb.Commit(lastBlockHash)
 	sndb.Compaction()
@@ -996,8 +992,6 @@ func TestGovPlugin_textProposalPassed(t *testing.T) {
 	}
 	lastBlockHash = lastHeader.Hash()
 	sndb.SetCurrent(lastBlockHash, *big.NewInt(int64(lastBlockNumber)), *big.NewInt(int64(lastBlockNumber)))
-
-	build_staking_data_more(p.GetEndVotingBlock())
 
 	endBlock(t)
 

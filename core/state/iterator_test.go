@@ -34,7 +34,6 @@ var TestPlatONPrecompiledContracts = map[common.Address]interface{}{
 	vm.SlashingContractAddr:    nil,
 	vm.GovContractAddr:         nil,
 	vm.RewardManagerPoolAddr:   nil,
-	vm.DelegateRewardPoolAddr:  nil,
 }
 
 type TestPrecompiledContractCheck struct{}

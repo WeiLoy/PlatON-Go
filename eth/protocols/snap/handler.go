@@ -120,10 +120,13 @@ func MakeProtocols(backend Backend, dnsdisc enode.Iterator) []p2p.Protocol {
 // When this function terminates, the peer is disconnected.
 func handle(backend Backend, peer *Peer) error {
 	for {
+		// TODO time
+		startTime := time.Now()
 		if err := handleMessage(backend, peer); err != nil {
 			peer.Log().Debug("Message handling failed in `snap`", "err", err)
 			return err
 		}
+		log.Info("protocol snap executed time", "time", time.Since(startTime))
 	}
 }
 

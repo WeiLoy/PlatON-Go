@@ -25,8 +25,10 @@ import (
 	"crypto/hmac"
 	"crypto/rand"
 	"encoding/binary"
+	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 	"hash"
 	"io"
 	mrand "math/rand"
@@ -185,11 +187,19 @@ func (h *sessionState) readFrame(conn io.Reader) ([]byte, error) {
 	}
 
 	// Read the frame content.
-	frame, err := h.rbuf.read(conn, int(rsize))
+	var start, end, frame []byte
+	start, err = h.rbuf.read(conn, int(8))
 	if err != nil {
+		log.Error("rlpx readFrame executed", "start", hex.EncodeToString(start), "rsize", rsize)
 		return nil, err
 	}
-
+	end, err = h.rbuf.read(conn, int(rsize-8))
+	if err != nil {
+		log.Error("rlpx readFrame executed", "start", hex.EncodeToString(start), "end", hex.EncodeToString(end), "rsize", rsize)
+		return nil, err
+	}
+	frame = append(frame, start...)
+	frame = append(frame, end...)
 	// Validate frame MAC.
 	frameMAC, err := h.rbuf.read(conn, 16)
 	if err != nil {

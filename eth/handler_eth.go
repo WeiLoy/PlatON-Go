@@ -132,6 +132,8 @@ func (h *ethHandler) handleHeaders(peer *eth.Peer, headers []*types.Header) erro
 	if p == nil {
 		return errors.New("unregistered during callback")
 	}
+	startTime := time.Now()
+	defer peer.Log().Debug("handleHeaders", "headers", len(headers), "time", time.Since(startTime))
 	// If no headers were received, but we're expencting a checkpoint header, consider it that
 	if len(headers) == 0 && p.syncDrop != nil {
 		// Stop the timer either way, decide later to drop or not
@@ -163,7 +165,7 @@ func (h *ethHandler) handleHeaders(peer *eth.Peer, headers []*types.Header) erro
 	if len(headers) > 0 || !filter {
 		err := h.downloader.DeliverHeaders(peer.ID(), headers)
 		if err != nil {
-			log.Debug("Failed to deliver headers", "err", err)
+			peer.Log().Debug("Failed to deliver headers", "err", err)
 		}
 	}
 	return nil

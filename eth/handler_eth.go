@@ -133,7 +133,9 @@ func (h *ethHandler) handleHeaders(peer *eth.Peer, headers []*types.Header) erro
 		return errors.New("unregistered during callback")
 	}
 	startTime := time.Now()
-	defer peer.Log().Debug("handleHeaders", "headers", len(headers), "time", time.Since(startTime))
+	defer func() {
+		peer.Log().Debug("handleHeaders", "headers", len(headers), "time", time.Since(startTime))
+	}()
 	// If no headers were received, but we're expencting a checkpoint header, consider it that
 	if len(headers) == 0 && p.syncDrop != nil {
 		// Stop the timer either way, decide later to drop or not

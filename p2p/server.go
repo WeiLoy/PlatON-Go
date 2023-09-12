@@ -1056,6 +1056,7 @@ func (srv *Server) setupConn(c *conn, flags connFlag, dialDest *discover.Node) e
 		return DiscUnexpectedIdentity
 	}
 	c.caps, c.name = phs.Caps, phs.Name
+	clog.Debug("setupConn", "caps", c.caps, "name", c.name)
 	err = srv.checkpoint(c, srv.addpeer)
 	if err != nil {
 		clog.Trace("Rejected peer", "err", err)

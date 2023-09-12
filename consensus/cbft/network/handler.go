@@ -443,12 +443,14 @@ func (h *EngineManager) handleMsg(p *peer) error {
 	startTime := time.Now()
 	var msgCode uint64
 	var readErr error
+	var readTime time.Time
 	defer func() {
 		if (time.Now().UnixMilli() - startTime.UnixMilli()) > 1000 {
-			p.Log().Info("EngineManager handleMsg executed", "msg", msgCode, "time", time.Since(startTime), "err", readErr)
+			p.Log().Info("EngineManager handleMsg executed", "msg", msgCode, "readTime", readTime.Sub(startTime), "totalTime", time.Since(startTime), "err", readErr)
 		}
 	}()
 	msg, err := p.ReadWriter().ReadMsg()
+	readTime = time.Now()
 	msgCode = msg.Code
 	readErr = err
 	if err != nil {

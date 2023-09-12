@@ -25,8 +25,10 @@ import (
 	"crypto/hmac"
 	"crypto/rand"
 	"encoding/binary"
+	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 	"hash"
 	"io"
 	mrand "math/rand"
@@ -148,6 +150,11 @@ func (h *handshakeState) readFrame(conn io.Reader) ([]byte, error) {
 	}
 	framebuf := make([]byte, rsize)
 	if _, err := io.ReadFull(conn, framebuf); err != nil {
+		var prefix []byte
+		if rsize > 8 {
+			prefix = framebuf[:8]
+		}
+		log.Error("rlpx readFrame executed", "prefix", hex.EncodeToString(prefix), "framebuf", hex.EncodeToString(framebuf), "rsize", rsize, "error", err)
 		return nil, err
 	}
 

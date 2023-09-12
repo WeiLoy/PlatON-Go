@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package network
 
 import (
@@ -223,10 +222,10 @@ func (h *EngineManager) PartBroadcast(msg types.Message) {
 // whether forwarding is required according to the message type.
 //
 // Note:
-// 1. message type that need to be forwarded:
-//    PrepareBlockMsg/PrepareVoteMsg/ViewChangeMsg/BlockQuorumCertMsg
-// 2. message type that need not to be forwarded:
-//    (Except for the above types, the rest are not forwarded).
+//  1. message type that need to be forwarded:
+//     PrepareBlockMsg/PrepareVoteMsg/ViewChangeMsg/BlockQuorumCertMsg
+//  2. message type that need not to be forwarded:
+//     (Except for the above types, the rest are not forwarded).
 func (h *EngineManager) Forwarding(nodeID string, msg types.Message) error {
 	msgHash := msg.MsgHash()
 	msgType := protocols.MessageType(msg)
@@ -440,7 +439,17 @@ func (h *EngineManager) handler(p *p2p.Peer, rw p2p.MsgReadWriter) error {
 // Main logic: Distribute according to message type and
 // transfer message to CBFT layer
 func (h *EngineManager) handleMsg(p *peer) error {
+	startTime := time.Now()
+	var msgCode uint64
+	var readErr error
+	defer func() {
+		if (time.Now().UnixMilli() - startTime.UnixMilli()) > 1000 {
+			p.Log().Info("EngineManager handleMsg executed", "msg", msgCode, "time", time.Since(startTime), "err", readErr)
+		}
+	}()
 	msg, err := p.ReadWriter().ReadMsg()
+	msgCode = msg.Code
+	readErr = err
 	if err != nil {
 		p.Log().Error("Read peer message error", "err", err)
 		return err

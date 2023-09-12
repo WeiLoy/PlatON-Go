@@ -129,11 +129,18 @@ func (c *Conn) Read() (code uint64, data []byte, wireSize int, err error) {
 
 func (h *handshakeState) readFrame(conn io.Reader) ([]byte, error) {
 	// read the header
+	startTime := time.Now()
+	var readTime time.Time
+	defer func() {
+		if (time.Now().UnixMilli() - startTime.UnixMilli()) > 1000 {
+			log.Info("readFrame executed", "readTime", readTime.Sub(startTime), "totalTime", time.Since(startTime))
+		}
+	}()
 	headbuf := make([]byte, 32)
 	if _, err := io.ReadFull(conn, headbuf); err != nil {
 		return nil, err
 	}
-
+	readTime = time.Now()
 	// verify header mac
 	shouldMAC := updateMAC(h.ingressMAC, h.macCipher, headbuf[:16])
 	if !hmac.Equal(shouldMAC, headbuf[16:]) {

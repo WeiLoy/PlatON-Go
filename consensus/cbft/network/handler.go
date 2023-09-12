@@ -440,11 +440,17 @@ func (h *EngineManager) handler(p *p2p.Peer, rw p2p.MsgReadWriter) error {
 // Main logic: Distribute according to message type and
 // transfer message to CBFT layer
 func (h *EngineManager) handleMsg(p *peer) error {
-	msg, err := p.ReadWriter().ReadMsg()
 	startTime := time.Now()
-	if (time.Now().UnixMilli() - startTime.UnixMilli()) > 1000 {
-		p.Log().Info("EngineManager handleMsg executed", "msg", msg.Code, "time", time.Since(startTime), "err", err)
-	}
+	var msgCode uint64
+	var readErr error
+	defer func() {
+		if (time.Now().UnixMilli() - startTime.UnixMilli()) > 1000 {
+			p.Log().Info("EngineManager handleMsg executed", "msg", msgCode, "time", time.Since(startTime), "err", readErr)
+		}
+	}()
+	msg, err := p.ReadWriter().ReadMsg()
+	msgCode = msg.Code
+	readErr = err
 	if err != nil {
 		p.Log().Error("Read peer message error", "err", err)
 		return err

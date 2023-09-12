@@ -126,7 +126,9 @@ func handle(backend Backend, peer *Peer) error {
 			peer.Log().Debug("Message handling failed in `snap`", "err", err)
 			return err
 		}
-		log.Info("protocol snap executed time", "time", time.Since(startTime))
+		if (time.Now().UnixMilli() - startTime.UnixMilli()) > 500 {
+			peer.Log().Info("protocol snap executed", "time", time.Since(startTime))
+		}
 	}
 }
 

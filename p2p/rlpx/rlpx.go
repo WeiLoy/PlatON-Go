@@ -190,12 +190,12 @@ func (h *sessionState) readFrame(conn io.Reader) ([]byte, error) {
 	var start, end, frame []byte
 	start, err = h.rbuf.read(conn, int(8))
 	if err != nil {
-		log.Error("rlpx readFrame executed", "start", hex.EncodeToString(start), "rsize", rsize)
+		log.Error("rlpx readFrame executed", "start", hex.EncodeToString(start), "rsize", rsize, "error", err)
 		return nil, err
 	}
 	end, err = h.rbuf.read(conn, int(rsize-8))
 	if err != nil {
-		log.Error("rlpx readFrame executed", "start", hex.EncodeToString(start), "end", hex.EncodeToString(end), "rsize", rsize)
+		log.Error("rlpx readFrame executed", "start", hex.EncodeToString(start), "end", hex.EncodeToString(end), "rsize", rsize, "error", err)
 		return nil, err
 	}
 	frame = append(frame, start...)

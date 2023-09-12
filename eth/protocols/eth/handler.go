@@ -260,11 +260,11 @@ func handleMessage(backend Backend, peer *Peer) error {
 		}(time.Now())
 	}
 	if handler := handlers[msg.Code]; handler != nil {
-		// TODO add time >200mm
+		// TODO add time >500mm
 		startTime := time.Now()
 		defer func() {
-			if (time.Now().UnixMilli() - startTime.UnixMilli()) > 200 {
-				log.Debug("eth handler executed time", "time", time.Since(startTime))
+			if (time.Now().UnixMilli() - startTime.UnixMilli()) > 500 {
+				log.Info("eth handler executed time", "msg.Code", msg.Code, "time", time.Since(startTime))
 			}
 		}()
 		return handler(backend, msg, peer)

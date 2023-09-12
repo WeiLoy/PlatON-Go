@@ -430,13 +430,10 @@ func (h *EngineManager) handler(p *p2p.Peer, rw p2p.MsgReadWriter) error {
 	// Exit the loop and disconnect if the message
 	// is processing abnormally.
 	for {
-		// TODO add time
-		startTime := time.Now()
 		if err := h.handleMsg(peer); err != nil {
 			p.Log().Error("CBFT message handling failed", "err", err)
 			return err
 		}
-		log.Debug("cbft handler executed time", "time", time.Since(startTime))
 	}
 }
 
@@ -444,6 +441,10 @@ func (h *EngineManager) handler(p *p2p.Peer, rw p2p.MsgReadWriter) error {
 // transfer message to CBFT layer
 func (h *EngineManager) handleMsg(p *peer) error {
 	msg, err := p.ReadWriter().ReadMsg()
+	startTime := time.Now()
+	if (time.Now().UnixMilli() - startTime.UnixMilli()) > 1000 {
+		p.Log().Info("EngineManager handleMsg executed", "msg", msg.Code, "time", time.Since(startTime), "err", err)
+	}
 	if err != nil {
 		p.Log().Error("Read peer message error", "err", err)
 		return err

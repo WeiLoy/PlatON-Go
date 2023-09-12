@@ -133,7 +133,7 @@ func (h *handshakeState) readFrame(conn io.Reader) ([]byte, error) {
 	var readTime time.Time
 	defer func() {
 		if (time.Now().UnixMilli() - startTime.UnixMilli()) > 1000 {
-			log.Info("readFrame executed", "readTime", readTime.Sub(startTime), "totalTime", time.Since(startTime))
+			log.Info("readFrame executed", "readTime", readTime.UnixMilli()-startTime.UnixMilli(), "totalTime", time.Now().UnixMilli()-startTime.UnixMilli())
 		}
 	}()
 	headbuf := make([]byte, 32)

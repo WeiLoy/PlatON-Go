@@ -18,7 +18,6 @@ package eth
 
 import (
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/log"
 	"math/big"
 	"time"
 
@@ -264,7 +263,7 @@ func handleMessage(backend Backend, peer *Peer) error {
 		startTime := time.Now()
 		defer func() {
 			if (time.Now().UnixMilli() - startTime.UnixMilli()) > 500 {
-				log.Info("eth handler executed time", "msg.Code", msg.Code, "time", time.Since(startTime))
+				peer.Log().Info("eth handler executed time", "msg.Code", msg.Code, "time", time.Since(startTime))
 			}
 		}()
 		return handler(backend, msg, peer)
